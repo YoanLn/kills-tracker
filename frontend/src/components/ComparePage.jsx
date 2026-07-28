@@ -75,7 +75,6 @@ export default function ComparePage() {
                 <input type="checkbox" checked={checked} onChange={() => toggle(p.id)} style={{ display: 'none' }} />
                 <span className="player-chip-dot" style={{ background: color }} />
                 <span>{p.name}</span>
-                {p.tag && <span className="tag">{p.tag}</span>}
                 {p.timezone && <span className={`tz-badge tz-${p.timezone}`}>{p.timezone}</span>}
               </label>
             )

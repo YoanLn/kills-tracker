@@ -6,17 +6,20 @@ import ComparePage from './components/ComparePage'
 import LeaderboardPage from './components/LeaderboardPage'
 import PlayersPage from './components/PlayersPage'
 import PeriodsPage from './components/PeriodsPage'
+import PlayerDetailPage from './components/PlayerDetailPage'
 
 export const ToastContext = createContext(null)
 export const useToast = () => useContext(ToastContext)
 
 function parseRoute(hash) {
   const h = hash.replace(/^#\/?/, '')
-  if (h === 'compare') return 'compare'
-  if (h === 'leaderboard') return 'leaderboard'
-  if (h === 'players') return 'players'
-  if (h === 'periods') return 'periods'
-  return 'grid'
+  const playerMatch = h.match(/^player\/(\d+)$/)
+  if (playerMatch) return { page: 'player', id: parseInt(playerMatch[1]) }
+  if (h === 'compare') return { page: 'compare' }
+  if (h === 'leaderboard') return { page: 'leaderboard' }
+  if (h === 'players') return { page: 'players' }
+  if (h === 'periods') return { page: 'periods' }
+  return { page: 'grid' }
 }
 
 export default function App() {
@@ -42,11 +45,12 @@ export default function App() {
       <div className="app">
         <Nav route={route} onLogout={() => { localStorage.removeItem('kt_token'); setAuthed(false) }} />
         <main className="main-content">
-          {route === 'grid' && <GridPage />}
-          {route === 'compare' && <ComparePage />}
-          {route === 'leaderboard' && <LeaderboardPage />}
-          {route === 'players' && <PlayersPage />}
-          {route === 'periods' && <PeriodsPage />}
+          {route.page === 'grid'        && <GridPage />}
+          {route.page === 'compare'     && <ComparePage />}
+          {route.page === 'leaderboard' && <LeaderboardPage />}
+          {route.page === 'players'     && <PlayersPage />}
+          {route.page === 'periods'     && <PeriodsPage />}
+          {route.page === 'player'      && <PlayerDetailPage id={route.id} />}
         </main>
         {toast && <div className={`toast toast-${toast.type}`}>{toast.msg}</div>}
       </div>

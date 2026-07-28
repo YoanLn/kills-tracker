@@ -143,7 +143,6 @@ export default function GridPage() {
                     <td className="grid-player-cell sticky-col">
                       <div className="grid-player-name">{p.name}</div>
                       <div className="grid-player-meta">
-                        {p.tag && <span className="tag">{p.tag}</span>}
                         {p.timezone && <span className={`tz-badge tz-${p.timezone}`}>{p.timezone}</span>}
                       </div>
                     </td>

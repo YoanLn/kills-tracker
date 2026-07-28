@@ -18,7 +18,8 @@ async function fetchJSON(path, opts = {}) {
 export const login = (password) => fetchJSON('/api/login', { method: 'POST', body: JSON.stringify({ password }) })
 
 export const getPlayers = () => fetchJSON('/api/players')
-export const addPlayer = (name, tag, timezone) => fetchJSON('/api/players', { method: 'POST', body: JSON.stringify({ name, tag, timezone }) })
+export const getPlayer = (id) => fetchJSON(`/api/players/${id}`)
+export const addPlayer = (name, timezone, joined_date) => fetchJSON('/api/players', { method: 'POST', body: JSON.stringify({ name, timezone, joined_date }) })
 export const updatePlayer = (id, data) => fetchJSON(`/api/players/${id}`, { method: 'PUT', body: JSON.stringify(data) })
 export const deletePlayer = (id) => fetchJSON(`/api/players/${id}`, { method: 'DELETE' })
 

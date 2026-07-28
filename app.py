@@ -63,8 +63,9 @@ def api_login():
 class Player(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
-    tag = db.Column(db.String(64), default='')
     timezone = db.Column(db.String(8), default='')
+    joined_date = db.Column(db.Date, nullable=True)
+    hat = db.Column(db.Boolean, default=False)
     entries = db.relationship('DailyEntry', backref='player', lazy=True, cascade='all, delete-orphan')
     monthly_totals = db.relationship('MonthlyTotal', backref='player', lazy=True, cascade='all, delete-orphan')
 
@@ -97,16 +98,35 @@ class Period(db.Model):
 
 with app.app_context():
     db.create_all()
+    with db.engine.connect() as conn:
+        for sql in [
+            'ALTER TABLE player ADD COLUMN joined_date DATE',
+            'ALTER TABLE player ADD COLUMN hat BOOLEAN DEFAULT FALSE',
+            # Fix periods to real dates
+            "UPDATE period SET name='War Phase', date_start='2026-07-06', date_end='2026-07-14', weight=2.0 WHERE name='Tower Week'",
+            "UPDATE period SET name='Chill Phase', date_start='2026-07-15', date_end='2026-07-30', weight=1.0 WHERE name='Farm Phase'",
+        ]:
+            try:
+                conn.execute(db.text(sql))
+                conn.commit()
+            except Exception:
+                pass
     if Period.query.count() == 0:
         db.session.add_all([
-            Period(name='Tower Week', date_start=date(2026, 7, 1), date_end=date(2026, 7, 7), weight=2.0),
-            Period(name='Farm Phase', date_start=date(2026, 7, 8), date_end=date(2026, 7, 31), weight=1.0),
+            Period(name='War Phase', date_start=date(2026, 7, 6), date_end=date(2026, 7, 14), weight=2.0),
+            Period(name='Chill Phase', date_start=date(2026, 7, 15), date_end=date(2026, 7, 30), weight=1.0),
         ])
         db.session.commit()
 
 
 def player_to_dict(p):
-    return {'id': p.id, 'name': p.name, 'tag': p.tag or '', 'timezone': p.timezone or ''}
+    return {
+        'id': p.id,
+        'name': p.name,
+        'timezone': p.timezone or '',
+        'joined_date': p.joined_date.isoformat() if p.joined_date else None,
+        'hat': bool(p.hat),
+    }
 
 def entry_to_dict(e):
     return {'id': e.id, 'player_id': e.player_id, 'date': e.date.isoformat(), 'kills': e.kills, 'tagtime': e.tagtime_hours}
@@ -133,10 +153,17 @@ def api_add_player():
     if not name:
         return jsonify({'error': 'name required'}), 400
     tz = (payload.get('timezone') or '').upper().strip()
-    p = Player(name=name, tag=(payload.get('tag') or '').strip(), timezone=tz)
+    joined_str = (payload.get('joined_date') or '').strip()
+    joined = date.fromisoformat(joined_str) if joined_str else None
+    p = Player(name=name, timezone=tz, joined_date=joined)
     db.session.add(p)
     db.session.commit()
     return jsonify(player_to_dict(p)), 201
+
+@app.route('/api/players/<int:pid>', methods=['GET'])
+def api_get_player(pid):
+    p = Player.query.get_or_404(pid)
+    return jsonify(player_to_dict(p))
 
 @app.route('/api/players/<int:pid>', methods=['PUT'])
 def api_update_player(pid):
@@ -145,8 +172,13 @@ def api_update_player(pid):
     if 'name' in payload:
         name = (payload['name'] or '').strip()
         if name: p.name = name
-    if 'tag' in payload: p.tag = (payload['tag'] or '').strip()
-    if 'timezone' in payload: p.timezone = (payload['timezone'] or '').upper().strip()
+    if 'timezone' in payload:
+        p.timezone = (payload['timezone'] or '').upper().strip()
+    if 'joined_date' in payload:
+        joined_str = (payload['joined_date'] or '').strip()
+        p.joined_date = date.fromisoformat(joined_str) if joined_str else None
+    if 'hat' in payload:
+        p.hat = bool(payload['hat'])
     db.session.commit()
     return jsonify(player_to_dict(p))
 
@@ -300,6 +332,8 @@ def api_leaderboard():
 
     monthly_map = {t.player_id: t.kills for t in MonthlyTotal.query.filter_by(year=year, month=m).all()}
 
+    sorted_periods = sorted(periods, key=lambda p: p.date_start)
+
     results = []
     for player in players:
         es = entries_by_player.get(player.id, [])
@@ -307,12 +341,17 @@ def api_leaderboard():
         daily_total = 0
         tagtime_total = 0.0
         days_active = 0
+        period_kills = {p.id: 0 for p in sorted_periods}
         for e in es:
             if e.kills is not None:
                 w = get_period_weight(e.date, periods)
                 weighted_score += e.kills * w
                 daily_total += e.kills
                 days_active += 1
+                for p in sorted_periods:
+                    if p.date_start <= e.date <= p.date_end:
+                        period_kills[p.id] += e.kills
+                        break
             if e.tagtime_hours is not None:
                 tagtime_total += e.tagtime_hours
         results.append({
@@ -322,6 +361,10 @@ def api_leaderboard():
             'monthly_total': monthly_map.get(player.id),
             'tagtime_total': round(tagtime_total, 1),
             'days_active': days_active,
+            'period_breakdown': [
+                {'id': p.id, 'name': p.name, 'kills': period_kills[p.id], 'weight': p.weight}
+                for p in sorted_periods
+            ],
         })
 
     results.sort(key=lambda x: x['weighted_score'], reverse=True)

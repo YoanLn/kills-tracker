@@ -164,6 +164,39 @@ body { font-family: Inter,'Segoe UI',system-ui,-apple-system,sans-serif; backgro
 .period-row:last-child { border-bottom: none }
 .weight-badge { color: #fff; border-radius: 5px; padding: 0.1rem 0.45rem; font-size: 12px; font-weight: 700 }
 
+/* HATS */
+.chip-full { background: rgba(251,191,36,0.15); color: #fbbf24 }
+.hat-checkbox { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer }
+.hat-checkbox:disabled { opacity: 0.3; cursor: not-allowed }
+.hat-chip { display: flex; align-items: center; gap: 0.4rem; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); border-radius: 20px; padding: 0.3rem 0.6rem 0.3rem 0.5rem; font-size: 13px }
+.hat-chip-rank { font-size: 11px; color: var(--muted); font-weight: 600 }
+.hat-chip-remove { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0; font-size: 12px; line-height: 1; margin-left: 0.2rem }
+.hat-chip-remove:hover { color: var(--danger) }
+
+/* PROFILE */
+.back-link { color: var(--muted); text-decoration: none; font-size: 12.5px; display: block; margin-bottom: 0.75rem; transition: color 0.15s }
+.back-link:hover { color: var(--accent) }
+
+.profile-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap }
+.avatar-lg { width: 56px; height: 56px; font-size: 18px }
+.profile-info { flex: 1; min-width: 0 }
+.profile-name-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap }
+.profile-name { margin: 0; font-size: 1.4rem; font-weight: 700 }
+.profile-joined { font-size: 13px; color: var(--muted); margin-top: 0.2rem }
+.profile-joined strong { color: var(--text) }
+.late-badge { background: rgba(245,158,11,0.15); color: #fbbf24; border-radius: 5px; padding: 0.1rem 0.45rem; font-size: 11px; font-weight: 600; margin-left: 0.4rem }
+
+.stats-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.75rem; margin-bottom: 1rem }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.85rem 1rem; box-shadow: var(--shadow) }
+.stat-card-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 0.3rem }
+.stat-card-value { font-size: 1.5rem; font-weight: 700; color: var(--text); line-height: 1.1 }
+.stat-card-value.merit { color: #fbbf24 }
+.stat-card-sub { font-size: 11px; color: var(--muted); margin-top: 0.2rem }
+.monthly-stat-card { cursor: pointer; transition: border-color 0.15s }
+.monthly-stat-card:hover { border-color: var(--accent) }
+
+.kills-val { font-weight: 700; color: #60a5fa }
+
 /* LOGIN */
 .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); padding: 1rem }
 .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2.5rem 2rem; width: 100%; max-width: 360px; box-shadow: var(--shadow-lg) }
