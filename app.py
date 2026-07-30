@@ -99,20 +99,19 @@ class Period(db.Model):
 
 with app.app_context():
     db.create_all()
-    with db.engine.connect() as conn:
-        for sql in [
-            'ALTER TABLE player ADD COLUMN joined_date DATE',
-            'ALTER TABLE player ADD COLUMN hat BOOLEAN DEFAULT FALSE',
-            'ALTER TABLE monthly_total ADD COLUMN tagtime_hours FLOAT',
-            # Fix periods to real dates
-            "UPDATE period SET name='War Phase', date_start='2026-07-06', date_end='2026-07-14', weight=2.0 WHERE name='Tower Week'",
-            "UPDATE period SET name='Chill Phase', date_start='2026-07-15', date_end='2026-07-30', weight=1.0 WHERE name='Farm Phase'",
-        ]:
-            try:
+    for sql in [
+        'ALTER TABLE player ADD COLUMN joined_date DATE',
+        'ALTER TABLE player ADD COLUMN hat BOOLEAN DEFAULT FALSE',
+        'ALTER TABLE monthly_total ADD COLUMN tagtime_hours FLOAT',
+        "UPDATE period SET name='War Phase', date_start='2026-07-06', date_end='2026-07-14', weight=2.0 WHERE name='Tower Week'",
+        "UPDATE period SET name='Chill Phase', date_start='2026-07-15', date_end='2026-07-30', weight=1.0 WHERE name='Farm Phase'",
+    ]:
+        try:
+            with db.engine.connect() as conn:
                 conn.execute(db.text(sql))
                 conn.commit()
-            except Exception:
-                pass
+        except Exception:
+            pass
     if Period.query.count() == 0:
         db.session.add_all([
             Period(name='War Phase', date_start=date(2026, 7, 6), date_end=date(2026, 7, 14), weight=2.0),
