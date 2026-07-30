@@ -63,8 +63,9 @@ export default function PlayerDetailPage({ id }) {
     ])
     setPlayer(p)
     setEntries(allEntries[String(id)] || {})
-    setMonthlyTotal(monthly[String(id)] ?? null)
-    setMonthlyVal(monthly[String(id)] != null ? String(monthly[String(id)]) : '')
+    const mt = monthly[String(id)]
+    setMonthlyTotal(mt?.kills ?? null)
+    setMonthlyVal(mt?.kills != null ? String(mt.kills) : '')
     const row = lb.find(r => r.player.id === id)
     setStats(row || null)
   }, [id, month])
@@ -132,7 +133,7 @@ export default function PlayerDetailPage({ id }) {
   async function saveMonthly() {
     const [y, m] = month.split('-').map(Number)
     try {
-      await upsertMonthly(id, y, m, monthlyVal === '' ? null : parseInt(monthlyVal))
+      await upsertMonthly(id, y, m, { kills: monthlyVal === '' ? null : parseInt(monthlyVal) })
       setEditingMonthly(false)
       showToast('Monthly total saved')
       load()
@@ -265,7 +266,6 @@ export default function PlayerDetailPage({ id }) {
             <tr>
               <th>Day</th>
               <th className="num">Kills</th>
-              <th className="num">Tagtime</th>
               <th></th>
             </tr>
           </thead>
@@ -273,7 +273,7 @@ export default function PlayerDetailPage({ id }) {
             {days.map(day => {
               const ds = datStr(month, day)
               const e = entries[ds] || {}
-              const hasData = e.kills != null || e.tagtime != null
+              const hasData = e.kills != null
               const isEditing = editing === ds
               const weekend = isWeekend(month, day)
 
@@ -287,16 +287,9 @@ export default function PlayerDetailPage({ id }) {
                   </td>
                   <td className="num">
                     {isEditing ? (
-                      <input ref={killsRef} className="input input-sm" type="number" min="0" value={editKills} onChange={e => setEditKills(e.target.value)} onKeyDown={e => e.key === 'Enter' && saveEntry(true)} style={{ width: 80, textAlign: 'right' }} />
+                      <input ref={killsRef} className="input input-sm" type="number" min="0" value={editKills} onChange={e => setEditKills(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveEntry(true); if (e.key === 'Escape') setEditing(null) }} style={{ width: 80, textAlign: 'right' }} />
                     ) : (
                       e.kills != null ? <span className="kills-val">{e.kills.toLocaleString()}</span> : <span className="muted">—</span>
-                    )}
-                  </td>
-                  <td className="num">
-                    {isEditing ? (
-                      <input className="input input-sm" type="number" min="0" step="0.5" value={editTagtime} onChange={e => setEditTagtime(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') saveEntry(true); if (e.key === 'Escape') setEditing(null) }} style={{ width: 80, textAlign: 'right' }} />
-                    ) : (
-                      e.tagtime != null ? <span>{e.tagtime}h</span> : <span className="muted">—</span>
                     )}
                   </td>
                   <td style={{ textAlign: 'right', paddingRight: '1rem' }}>

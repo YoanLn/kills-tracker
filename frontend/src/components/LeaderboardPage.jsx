@@ -46,7 +46,7 @@ export default function LeaderboardPage() {
   async function saveMonthly(row) {
     const [year, m] = month.split('-').map(Number)
     try {
-      await upsertMonthly(row.player.id, year, m, editVal === '' ? null : parseInt(editVal))
+      await upsertMonthly(row.player.id, year, m, { kills: editVal === '' ? null : parseInt(editVal) })
       showToast('Monthly total saved')
       setEditingMonthly(null)
       load()

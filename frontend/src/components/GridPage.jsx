@@ -50,7 +50,6 @@ export default function GridPage() {
   const [entries, setEntries] = useState({})
   const [cell, setCell] = useState(null)
   const [cellKills, setCellKills] = useState('')
-  const [cellTagtime, setCellTagtime] = useState('')
   const [saving, setSaving] = useState(false)
   const killsRef = useRef(null)
 
@@ -70,7 +69,6 @@ export default function GridPage() {
     const rect = e.currentTarget.getBoundingClientRect()
     const existing = entries[String(playerId)]?.[dateStr] || {}
     setCellKills(existing.kills != null ? String(existing.kills) : '')
-    setCellTagtime(existing.tagtime != null ? String(existing.tagtime) : '')
     setCell({ playerId, dateStr, x: rect.left, y: rect.bottom })
   }
 
@@ -79,8 +77,7 @@ export default function GridPage() {
     setSaving(true)
     try {
       const kills = cellKills === '' ? null : parseInt(cellKills)
-      const tagtime = cellTagtime === '' ? null : parseFloat(cellTagtime)
-      const result = await upsertEntry(cell.playerId, cell.dateStr, kills, tagtime)
+      const result = await upsertEntry(cell.playerId, cell.dateStr, kills, null)
       setEntries(prev => ({
         ...prev,
         [String(cell.playerId)]: {
@@ -201,10 +198,6 @@ export default function GridPage() {
             <div className="popup-field">
               <label>Kills</label>
               <input ref={killsRef} className="input" type="number" min="0" value={cellKills} onChange={e => setCellKills(e.target.value)} onKeyDown={handleKeyDown} placeholder="0" />
-            </div>
-            <div className="popup-field">
-              <label>Tagtime (hours)</label>
-              <input className="input" type="number" min="0" step="0.5" value={cellTagtime} onChange={e => setCellTagtime(e.target.value)} onKeyDown={handleKeyDown} placeholder="0" />
             </div>
             <div className="popup-actions">
               <button className="btn btn-sm" onClick={saveCell} disabled={saving}>Save</button>

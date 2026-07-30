@@ -85,6 +85,7 @@ class MonthlyTotal(db.Model):
     year = db.Column(db.Integer, nullable=False)
     month = db.Column(db.Integer, nullable=False)
     kills = db.Column(db.Integer, nullable=True)
+    tagtime_hours = db.Column(db.Float, nullable=True)
     __table_args__ = (db.UniqueConstraint('player_id', 'year', 'month', name='uq_player_month'),)
 
 
@@ -102,6 +103,7 @@ with app.app_context():
         for sql in [
             'ALTER TABLE player ADD COLUMN joined_date DATE',
             'ALTER TABLE player ADD COLUMN hat BOOLEAN DEFAULT FALSE',
+            'ALTER TABLE monthly_total ADD COLUMN tagtime_hours FLOAT',
             # Fix periods to real dates
             "UPDATE period SET name='War Phase', date_start='2026-07-06', date_end='2026-07-14', weight=2.0 WHERE name='Tower Week'",
             "UPDATE period SET name='Chill Phase', date_start='2026-07-15', date_end='2026-07-30', weight=1.0 WHERE name='Farm Phase'",
@@ -249,7 +251,7 @@ def api_get_monthly():
     except Exception:
         return jsonify({'error': 'invalid month'}), 400
     totals = MonthlyTotal.query.filter_by(year=year, month=m).all()
-    return jsonify({str(t.player_id): t.kills for t in totals})
+    return jsonify({str(t.player_id): {'kills': t.kills, 'tagtime': t.tagtime_hours} for t in totals})
 
 @app.route('/api/monthly', methods=['POST'])
 def api_upsert_monthly():
@@ -257,19 +259,22 @@ def api_upsert_monthly():
     player_id = payload.get('player_id')
     year = payload.get('year')
     month = payload.get('month')
-    kills = payload.get('kills')
     if not all([player_id, year, month]):
         return jsonify({'error': 'player_id, year, month required'}), 400
     Player.query.get_or_404(player_id)
+    kills = payload.get('kills')
+    tagtime = payload.get('tagtime')
     kills = int(kills) if kills is not None else None
+    tagtime = float(tagtime) if tagtime is not None else None
     t = MonthlyTotal.query.filter_by(player_id=player_id, year=year, month=month).first()
     if t:
-        t.kills = kills
+        if 'kills' in payload: t.kills = kills
+        if 'tagtime' in payload: t.tagtime_hours = tagtime
     else:
-        t = MonthlyTotal(player_id=player_id, year=int(year), month=int(month), kills=kills)
+        t = MonthlyTotal(player_id=player_id, year=int(year), month=int(month), kills=kills, tagtime_hours=tagtime)
         db.session.add(t)
     db.session.commit()
-    return jsonify({'player_id': player_id, 'year': year, 'month': month, 'kills': kills})
+    return jsonify({'player_id': player_id, 'year': year, 'month': month, 'kills': t.kills, 'tagtime': t.tagtime_hours})
 
 
 # Periods
@@ -330,7 +335,7 @@ def api_leaderboard():
     for e in DailyEntry.query.filter(DailyEntry.date >= first_day, DailyEntry.date <= last_day).all():
         entries_by_player.setdefault(e.player_id, []).append(e)
 
-    monthly_map = {t.player_id: t.kills for t in MonthlyTotal.query.filter_by(year=year, month=m).all()}
+    monthly_map = {t.player_id: t for t in MonthlyTotal.query.filter_by(year=year, month=m).all()}
 
     sorted_periods = sorted(periods, key=lambda p: p.date_start)
 
@@ -339,7 +344,6 @@ def api_leaderboard():
         es = entries_by_player.get(player.id, [])
         weighted_score = 0.0
         daily_total = 0
-        tagtime_total = 0.0
         days_active = 0
         period_kills = {p.id: 0 for p in sorted_periods}
         for e in es:
@@ -352,14 +356,13 @@ def api_leaderboard():
                     if p.date_start <= e.date <= p.date_end:
                         period_kills[p.id] += e.kills
                         break
-            if e.tagtime_hours is not None:
-                tagtime_total += e.tagtime_hours
+        mt = monthly_map.get(player.id)
         results.append({
             'player': player_to_dict(player),
             'weighted_score': round(weighted_score, 0),
             'daily_total': daily_total,
-            'monthly_total': monthly_map.get(player.id),
-            'tagtime_total': round(tagtime_total, 1),
+            'monthly_total': mt.kills if mt else None,
+            'tagtime_total': round(mt.tagtime_hours, 1) if mt and mt.tagtime_hours else 0,
             'days_active': days_active,
             'period_breakdown': [
                 {'id': p.id, 'name': p.name, 'kills': period_kills[p.id], 'weight': p.weight}

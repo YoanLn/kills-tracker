@@ -28,8 +28,8 @@ export const upsertEntry = (player_id, date, kills, tagtime) =>
   fetchJSON('/api/entries', { method: 'POST', body: JSON.stringify({ player_id, date, kills, tagtime }) })
 
 export const getMonthly = (month) => fetchJSON(`/api/monthly?month=${month}`)
-export const upsertMonthly = (player_id, year, month, kills) =>
-  fetchJSON('/api/monthly', { method: 'POST', body: JSON.stringify({ player_id, year, month, kills }) })
+export const upsertMonthly = (player_id, year, month, fields) =>
+  fetchJSON('/api/monthly', { method: 'POST', body: JSON.stringify({ player_id, year, month, ...fields }) })
 
 export const getPeriods = () => fetchJSON('/api/periods')
 export const addPeriod = (data) => fetchJSON('/api/periods', { method: 'POST', body: JSON.stringify(data) })
