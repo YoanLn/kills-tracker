@@ -46,6 +46,9 @@ export default function PlayerDetailPage({ id }) {
   const [monthlyTotal, setMonthlyTotal] = useState(null)
   const [editingMonthly, setEditingMonthly] = useState(false)
   const [monthlyVal, setMonthlyVal] = useState('')
+  const [tagtimeTotal, setTagtimeTotal] = useState(null)
+  const [editingTagtime, setEditingTagtime] = useState(false)
+  const [tagtimeVal, setTagtimeVal] = useState('')
   const [editing, setEditing] = useState(null)
   const [editKills, setEditKills] = useState('')
   const [editTagtime, setEditTagtime] = useState('')
@@ -66,6 +69,8 @@ export default function PlayerDetailPage({ id }) {
     const mt = monthly[String(id)]
     setMonthlyTotal(mt?.kills ?? null)
     setMonthlyVal(mt?.kills != null ? String(mt.kills) : '')
+    setTagtimeTotal(mt?.tagtime ?? null)
+    setTagtimeVal(mt?.tagtime != null ? String(mt.tagtime) : '')
     const row = lb.find(r => r.player.id === id)
     setStats(row || null)
   }, [id, month])
@@ -136,6 +141,16 @@ export default function PlayerDetailPage({ id }) {
       await upsertMonthly(id, y, m, { kills: monthlyVal === '' ? null : parseInt(monthlyVal) })
       setEditingMonthly(false)
       showToast('Monthly total saved')
+      load()
+    } catch (e) { showToast(e.message, 'error') }
+  }
+
+  async function saveTagtime() {
+    const [y, m] = month.split('-').map(Number)
+    try {
+      await upsertMonthly(id, y, m, { tagtime: tagtimeVal === '' ? null : parseFloat(tagtimeVal) })
+      setEditingTagtime(false)
+      showToast('Tagtime saved')
       load()
     } catch (e) { showToast(e.message, 'error') }
   }
@@ -241,10 +256,32 @@ export default function PlayerDetailPage({ id }) {
               </>
             )}
           </div>
-          <div className="stat-card">
-            <div className="stat-card-label">Tagtime</div>
-            <div className="stat-card-value">{stats.tagtime_total > 0 ? `${stats.tagtime_total}h` : '—'}</div>
-            <div className="stat-card-sub">total hours</div>
+          <div className="stat-card monthly-stat-card" onClick={() => setEditingTagtime(true)} title="Click to edit">
+            <div className="stat-card-label">Tagtime <span style={{ fontSize: 10, opacity: 0.6 }}>(click to edit)</span></div>
+            {editingTagtime ? (
+              <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginTop: '0.25rem' }}>
+                <input
+                  className="input"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={tagtimeVal}
+                  onChange={e => setTagtimeVal(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') saveTagtime(); if (e.key === 'Escape') setEditingTagtime(false) }}
+                  autoFocus
+                  style={{ width: 100 }}
+                />
+                <button className="btn btn-sm" onClick={saveTagtime}>✓</button>
+                <button className="btn btn-sm btn-secondary" onClick={() => setEditingTagtime(false)}>✕</button>
+              </div>
+            ) : (
+              <>
+                <div className={`stat-card-value${tagtimeTotal == null ? ' muted' : ''}`}>
+                  {tagtimeTotal != null ? `${tagtimeTotal}h` : '+ enter'}
+                </div>
+                <div className="stat-card-sub">total hours</div>
+              </>
+            )}
           </div>
           <div className="stat-card">
             <div className="stat-card-label">Days Active</div>

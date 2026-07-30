@@ -28,6 +28,8 @@ export default function PlayersPage() {
   const [name, setName] = useState('')
   const [tz, setTz] = useState('')
   const [joinedDate, setJoinedDate] = useState('')
+  const [addKills, setAddKills] = useState('')
+  const [addTagtime, setAddTagtime] = useState('')
   const [editing, setEditing] = useState(null)
   const [editData, setEditData] = useState({})
 
@@ -88,8 +90,15 @@ export default function PlayersPage() {
     e.preventDefault()
     if (!name.trim()) return
     try {
-      await addPlayer(name.trim(), tz, joinedDate || null)
-      setName(''); setTz(''); setJoinedDate('')
+      const p = await addPlayer(name.trim(), tz, joinedDate || null)
+      if (addKills !== '' || addTagtime !== '') {
+        const [year, month] = dataMonth.split('-').map(Number)
+        await upsertMonthly(p.id, year, month, {
+          kills: addKills === '' ? null : parseInt(addKills),
+          tagtime: addTagtime === '' ? null : parseFloat(addTagtime),
+        })
+      }
+      setName(''); setTz(''); setJoinedDate(''); setAddKills(''); setAddTagtime('')
       load(); showToast('Player added')
     } catch (err) { showToast(err.message, 'error') }
   }
@@ -121,7 +130,9 @@ export default function PlayersPage() {
           <select className="input select-auto" value={tz} onChange={e => setTz(e.target.value)}>
             {TZ.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
-          <input className="input" type="date" value={joinedDate} onChange={e => setJoinedDate(e.target.value)} title="Join date" />
+          <input className="input" type="date" value={joinedDate} onChange={e => setJoinedDate(e.target.value)} title="Join date" style={{ width: 'auto' }} />
+          <input className="input" type="number" min="0" value={addKills} onChange={e => setAddKills(e.target.value)} placeholder="Monthly kills" style={{ width: 130 }} />
+          <input className="input" type="number" min="0" step="0.5" value={addTagtime} onChange={e => setAddTagtime(e.target.value)} placeholder="Tagtime (h)" style={{ width: 110 }} />
           <button className="btn" type="submit">+ Add</button>
         </form>
       </div>
