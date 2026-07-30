@@ -32,6 +32,7 @@ export default function PlayersPage() {
   const [addTagtime, setAddTagtime] = useState('')
   const [editing, setEditing] = useState(null)
   const [editData, setEditData] = useState({})
+  const [search, setSearch] = useState('')
 
   const [dataMonth] = useState(defaultMonth)
 
@@ -94,8 +95,16 @@ export default function PlayersPage() {
       </div>
 
       {/* Players list */}
+      <div style={{ marginBottom: '0.75rem' }}>
+        <input
+          className="input"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search players…"
+        />
+      </div>
       <div className="players-list">
-        {players.map(p => (
+        {players.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).map(p => (
           <div key={p.id} className="player-row-card">
             {editing === p.id ? (
               <div className="form-row" style={{ flex: 1 }}>
@@ -132,6 +141,9 @@ export default function PlayersPage() {
           </div>
         ))}
         {players.length === 0 && <div className="empty-state">No players yet. Add one above.</div>}
+        {players.length > 0 && search && players.filter(p => p.name.toLowerCase().includes(search.toLowerCase())).length === 0 && (
+          <div className="empty-state">No players match "{search}".</div>
+        )}
       </div>
 
     </div>
