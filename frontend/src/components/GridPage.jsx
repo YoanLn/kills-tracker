@@ -160,13 +160,16 @@ export default function GridPage() {
                     {days.map(d => {
                       const ds = datStr(month, d)
                       const e = pe[ds]
+                      const beforeJoin = p.joined_date && ds < p.joined_date
                       return (
                         <td
                           key={d}
-                          className={`grid-cell${isWeekend(month, d) ? ' weekend-col' : ''} ${killsClass(e?.kills)}`}
-                          onClick={ev => openCell(ev, p.id, ds)}
+                          className={`grid-cell ${killsClass(e?.kills)}`}
+                          onClick={beforeJoin ? undefined : ev => openCell(ev, p.id, ds)}
+                          style={beforeJoin ? { opacity: 0.2, cursor: 'default', background: 'transparent' } : {}}
+                          title={beforeJoin ? `${p.name} hadn't joined yet` : ''}
                         >
-                          {e?.kills != null && <span className="cell-kills-val">{e.kills}</span>}
+                          {!beforeJoin && e?.kills != null && <span className="cell-kills-val">{e.kills}</span>}
                         </td>
                       )
                     })}
