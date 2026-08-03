@@ -443,7 +443,7 @@ def api_export():
 
     month_name = first_day.strftime('%B %Y')
     day_headers = [f'{first_day.strftime("%b")} {d}' for d in days]
-    headers = ['Player', 'Timezone', 'Monthly Kills', 'Tagtime (h)'] + day_headers
+    headers = ['Player', 'Timezone', 'Joined', 'Monthly Kills', 'Tagtime (h)'] + day_headers
 
     def csv_row(values):
         return ','.join('' if v is None else str(v) for v in values) + '\r\n'
@@ -452,10 +452,17 @@ def api_export():
     for p in players:
         mt = monthly_map.get(p.id)
         pe = entries_by_player.get(p.id, {})
-        daily_cols = [pe.get(d) for d in days]
+        daily_cols = []
+        for d in days:
+            day_date = date(year, m, d)
+            if p.joined_date and day_date < p.joined_date:
+                daily_cols.append('X')
+            else:
+                daily_cols.append(pe.get(d))
         row = [
             p.name,
             p.timezone or '',
+            p.joined_date.isoformat() if p.joined_date else '',
             mt.kills if mt else '',
             mt.tagtime_hours if mt and mt.tagtime_hours is not None else '',
         ] + daily_cols
