@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { getPlayers, getEntries, upsertEntry } from '../api'
+import { getPlayers, getEntries, upsertEntry, getMonthly, upsertMonthly } from '../api'
 import { useToast } from '../App'
 
 const KILLS_TIERS = [
@@ -48,22 +48,29 @@ export default function GridPage() {
   const [month, setMonth] = useState(defaultMonth)
   const [players, setPlayers] = useState([])
   const [entries, setEntries] = useState({})
+  const [monthly, setMonthly] = useState({})       // {pid: {kills, tagtime}}
+  const [tagtimeEdits, setTagtimeEdits] = useState({}) // {pid: string}
+  const [savingTagtime, setSavingTagtime] = useState({})
   const [cell, setCell] = useState(null)
   const [cellKills, setCellKills] = useState('')
   const [saving, setSaving] = useState(false)
   const killsRef = useRef(null)
 
   const load = useCallback(async () => {
-    const [ps, es] = await Promise.all([getPlayers(), getEntries(month)])
+    const [ps, es, mt] = await Promise.all([getPlayers(), getEntries(month), getMonthly(month)])
     setPlayers(ps)
     setEntries(es)
+    setMonthly(mt)
+    const initEdits = {}
+    ps.forEach(p => {
+      const m = mt[String(p.id)]
+      initEdits[p.id] = m?.tagtime != null ? String(m.tagtime) : ''
+    })
+    setTagtimeEdits(initEdits)
   }, [month])
 
   useEffect(() => { load() }, [load])
-
-  useEffect(() => {
-    if (cell && killsRef.current) killsRef.current.focus()
-  }, [cell])
+  useEffect(() => { if (cell && killsRef.current) killsRef.current.focus() }, [cell])
 
   function openCell(e, playerId, dateStr) {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -82,7 +89,7 @@ export default function GridPage() {
         ...prev,
         [String(cell.playerId)]: {
           ...(prev[String(cell.playerId)] || {}),
-          [cell.dateStr]: { kills: result.kills, tagtime: result.tagtime },
+          [cell.dateStr]: { kills: result.kills },
         },
       }))
       showToast('Saved')
@@ -90,6 +97,18 @@ export default function GridPage() {
     } catch (e) {
       showToast(e.message, 'error')
     } finally { setSaving(false) }
+  }
+
+  async function saveTagtime(p) {
+    const val = tagtimeEdits[p.id]
+    const [year, m] = month.split('-').map(Number)
+    setSavingTagtime(prev => ({ ...prev, [p.id]: true }))
+    try {
+      await upsertMonthly(p.id, year, m, { tagtime: val === '' ? null : parseFloat(val) })
+      setMonthly(prev => ({ ...prev, [String(p.id)]: { ...(prev[String(p.id)] || {}), tagtime: val === '' ? null : parseFloat(val) } }))
+      showToast(`${p.name} tagtime saved`)
+    } catch (e) { showToast(e.message, 'error') }
+    finally { setSavingTagtime(prev => ({ ...prev, [p.id]: false })) }
   }
 
   function handleKeyDown(e) {
@@ -103,13 +122,7 @@ export default function GridPage() {
     <div>
       <div className="page-header">
         <h1>Daily Grid</h1>
-        <input
-          type="month"
-          className="input"
-          style={{ width: 'auto' }}
-          value={month}
-          onChange={e => setMonth(e.target.value)}
-        />
+        <input type="month" className="input" style={{ width: 'auto' }} value={month} onChange={e => setMonth(e.target.value)} />
       </div>
 
       {players.length === 0 ? (
@@ -127,14 +140,15 @@ export default function GridPage() {
                   </th>
                 ))}
                 <th className="grid-total-col">Total</th>
-                <th className="grid-total-col">Tagtime</th>
+                <th className="grid-total-col" style={{ minWidth: 110 }}>Tagtime (h)</th>
               </tr>
             </thead>
             <tbody>
               {players.map(p => {
                 const pe = entries[String(p.id)] || {}
                 const total = Object.values(pe).reduce((s, e) => s + (e.kills ?? 0), 0)
-                const tagTotal = Object.values(pe).reduce((s, e) => s + (e.tagtime ?? 0), 0)
+                const tVal = tagtimeEdits[p.id] ?? ''
+                const isSaving = savingTagtime[p.id]
                 return (
                   <tr key={p.id}>
                     <td className="grid-player-cell sticky-col">
@@ -151,15 +165,30 @@ export default function GridPage() {
                           key={d}
                           className={`grid-cell${isWeekend(month, d) ? ' weekend-col' : ''} ${killsClass(e?.kills)}`}
                           onClick={ev => openCell(ev, p.id, ds)}
-                          title={e?.tagtime ? `${e.tagtime}h tagtime` : ''}
                         >
                           {e?.kills != null && <span className="cell-kills-val">{e.kills}</span>}
-                          {e?.tagtime != null && <span className="cell-tag-dot" />}
                         </td>
                       )
                     })}
                     <td className="grid-summary-cell">{total > 0 ? total.toLocaleString() : <span className="muted">—</span>}</td>
-                    <td className="grid-summary-cell">{tagTotal > 0 ? `${tagTotal.toFixed(1)}h` : <span className="muted">—</span>}</td>
+                    <td className="grid-summary-cell" style={{ padding: '0.25rem 0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <input
+                          className="input input-sm"
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={tVal}
+                          onChange={e => setTagtimeEdits(prev => ({ ...prev, [p.id]: e.target.value }))}
+                          onKeyDown={e => e.key === 'Enter' && saveTagtime(p)}
+                          onBlur={() => saveTagtime(p)}
+                          placeholder="—"
+                          style={{ width: 60, textAlign: 'right' }}
+                          disabled={isSaving}
+                        />
+                        <span style={{ fontSize: 11, color: 'var(--muted)' }}>h</span>
+                      </div>
+                    </td>
                   </tr>
                 )
               })}
@@ -174,7 +203,6 @@ export default function GridPage() {
         {[['cell-kills-0','0'],['cell-kills-1','1–39'],['cell-kills-2','40–99'],['cell-kills-3','100–199'],['cell-kills-4','200+']].map(([cls, label]) => (
           <span key={cls} className={`legend-chip ${cls}`}>{label}</span>
         ))}
-        <span className="legend-dot-item"><span className="cell-tag-dot" /> tagtime set</span>
       </div>
 
       {/* Cell popup */}
