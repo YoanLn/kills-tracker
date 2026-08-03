@@ -161,13 +161,14 @@ export default function GridPage() {
                       const ds = datStr(month, d)
                       const e = pe[ds]
                       const beforeJoin = p.joined_date && ds < p.joined_date
+                      const isJoinDay = p.joined_date && ds === p.joined_date
                       return (
                         <td
                           key={d}
-                          className={`grid-cell ${killsClass(e?.kills)}`}
+                          className={`grid-cell ${beforeJoin ? 'cell-before-join' : killsClass(e?.kills)}`}
                           onClick={beforeJoin ? undefined : ev => openCell(ev, p.id, ds)}
-                          style={beforeJoin ? { opacity: 0.2, cursor: 'default', background: 'transparent' } : {}}
-                          title={beforeJoin ? `${p.name} hadn't joined yet` : ''}
+                          style={isJoinDay ? { borderLeft: '2px solid #f59e0b' } : {}}
+                          title={beforeJoin ? 'Before join date' : isJoinDay ? 'Join date' : ''}
                         >
                           {!beforeJoin && e?.kills != null && <span className="cell-kills-val">{e.kills}</span>}
                         </td>

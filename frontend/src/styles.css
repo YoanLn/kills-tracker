@@ -89,6 +89,17 @@ body { font-family: Inter,'Segoe UI',system-ui,-apple-system,sans-serif; backgro
 .day-num { font-size: 12px; font-weight: 700; color: var(--text) }
 .day-name { font-size: 10px; color: var(--muted); margin-top: 1px }
 .weekend-col { }
+.cell-before-join {
+  background: repeating-linear-gradient(
+    135deg,
+    transparent,
+    transparent 3px,
+    rgba(255,255,255,0.04) 3px,
+    rgba(255,255,255,0.04) 6px
+  ) !important;
+  cursor: default !important;
+  opacity: 0.45;
+}
 
 .sticky-col { position: sticky; left: 0; z-index: 3; background: var(--surface) !important }
 .kill-grid thead .sticky-col { z-index: 4 }
