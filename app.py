@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from itsdangerous import URLSafeTimedSerializer, BadSignature
@@ -419,6 +419,54 @@ def api_compare():
         current += timedelta(days=1)
 
     return jsonify({'days': days, 'players': {str(pid): players_map.get(pid, f'Player {pid}') for pid in player_ids}})
+
+
+# CSV Export
+@app.route('/api/export', methods=['GET'])
+def api_export():
+    month = request.args.get('month', '')
+    try:
+        year, m = map(int, month.split('-'))
+        first_day = date(year, m, 1)
+        last_day = date(year, m, calendar.monthrange(year, m)[1])
+    except Exception:
+        return jsonify({'error': 'invalid month (YYYY-MM)'}), 400
+
+    players = Player.query.order_by(Player.name).all()
+    days = list(range(1, last_day.day + 1))
+
+    entries_by_player = {}
+    for e in DailyEntry.query.filter(DailyEntry.date >= first_day, DailyEntry.date <= last_day).all():
+        entries_by_player.setdefault(e.player_id, {})[e.date.day] = e.kills
+
+    monthly_map = {t.player_id: t for t in MonthlyTotal.query.filter_by(year=year, month=m).all()}
+
+    month_name = first_day.strftime('%B %Y')
+    day_headers = [f'{first_day.strftime("%b")} {d}' for d in days]
+    headers = ['Player', 'Timezone', 'Monthly Kills', 'Tagtime (h)'] + day_headers
+
+    def csv_row(values):
+        return ','.join('' if v is None else str(v) for v in values) + '\r\n'
+
+    lines = csv_row(headers)
+    for p in players:
+        mt = monthly_map.get(p.id)
+        pe = entries_by_player.get(p.id, {})
+        daily_cols = [pe.get(d) for d in days]
+        row = [
+            p.name,
+            p.timezone or '',
+            mt.kills if mt else '',
+            mt.tagtime_hours if mt and mt.tagtime_hours is not None else '',
+        ] + daily_cols
+        lines += csv_row(row)
+
+    filename = f'imperial-{month}.csv'
+    return Response(
+        lines,
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'}
+    )
 
 
 # Serve React

@@ -1,5 +1,5 @@
 const BASE = import.meta.env.VITE_API_BASE || ''
-const getToken = () => localStorage.getItem('kt_token') || ''
+export const getToken = () => localStorage.getItem('kt_token') || ''
 
 async function fetchJSON(path, opts = {}) {
   const token = getToken()

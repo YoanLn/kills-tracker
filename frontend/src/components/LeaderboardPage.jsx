@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { getLeaderboard, getMonthly, upsertMonthly, updatePlayer } from '../api'
+import { getLeaderboard, getMonthly, upsertMonthly, updatePlayer, getToken } from '../api'
 import { useToast } from '../App'
 
 const MEDALS = ['🥇', '🥈', '🥉']
@@ -70,6 +70,13 @@ export default function LeaderboardPage() {
           </span>
         </h1>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <a
+            className="btn btn-sm btn-secondary"
+            href={`/api/export?month=${month}&token=${getToken()}`}
+            download
+          >
+            ↓ CSV
+          </a>
           <button
             className={`btn btn-sm${showHatList ? '' : ' btn-secondary'}`}
             onClick={() => setShowHatList(h => !h)}
