@@ -355,7 +355,10 @@ def api_leaderboard():
                     if p.date_start <= e.date <= p.date_end:
                         period_kills[p.id] += e.kills
                         break
+        TAGTIME_WEIGHT = 10  # 1 hour = 10 kills equivalent
         mt = monthly_map.get(player.id)
+        tagtime = mt.tagtime_hours if mt and mt.tagtime_hours else 0
+        weighted_score += tagtime * TAGTIME_WEIGHT
         results.append({
             'player': player_to_dict(player),
             'weighted_score': round(weighted_score, 0),

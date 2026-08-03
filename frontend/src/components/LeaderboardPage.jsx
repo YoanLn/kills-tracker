@@ -106,7 +106,7 @@ export default function LeaderboardPage() {
       ) : (
         <div className="card info-banner">
           <span className="info-icon">ℹ</span>
-          <span><strong>Merit Score</strong> = daily kills × period weight. <strong>War Phase</strong> (Jul 6–14) ×2, <strong>Chill Phase</strong> (Jul 15–30) ×1. Click <em>Monthly Total</em> to enter the verified figure. Check <strong>🎩</strong> to allocate a hat.</span>
+          <span><strong>Merit Score</strong> = (daily kills × period weight) + (tagtime × 10). <strong>War Phase</strong> (Jul 6–14) ×2, <strong>Chill Phase</strong> (Jul 15–30) ×1. Tagtime counts as 10 kills/h. Click <em>Monthly</em> to enter the verified figure. Check <strong>🎩</strong> to allocate a hat.</span>
         </div>
       )}
 
